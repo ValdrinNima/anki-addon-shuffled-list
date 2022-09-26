@@ -1,0 +1,9 @@
+{
+	"actions": [
+		{
+			"name": "shuffleList",
+			"tooltip": "Create a randomized unordered list",
+			"hotkey": "ctrl+shift+u"
+		}
+	]
+}
