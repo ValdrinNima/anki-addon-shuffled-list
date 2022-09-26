@@ -12,6 +12,10 @@ Alternatively you can use the shortcut `ctrl+shift+u` to turn the selected text 
 
 If you have the [Mini Format Pack](https://ankiweb.net/shared/info/295889520) add-on you can undo the shuffled list by highlighting the text and pressing the unordered list button. 
 
+## Installation
+
+You can install the add-on using this link: [Shuffled List](https://ankiweb.net/shared/info/1261140161)
+
 ## Limitations
 **Warning**: Use this at your own risk. I have not tested this add-on thoroughly, so there might be some bugs.
 
