@@ -91,7 +91,10 @@ class ULParser(HTMLParser):
                 self.li_buffer.write(f'{attr}="{value}" ')
             self.li_buffer.write('>')
         else:
-            self.result.write(f'<{tag}>')
+            self.result.write(f'<{tag} ')
+            for attr, value in attrs.items():
+                self.result.write(f'{attr}="{value}" ')
+            self.result.write('>')
 
     def handle_endtag(self, tag):
         if tag == 'ul' and self.in_target_ul:
