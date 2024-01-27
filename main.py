@@ -3,10 +3,10 @@ from aqt.qt import *
 from anki.hooks import addHook
 
 from .consts import addon_path
+from .html_parser import ULParser
 
 import json
-import re
-import random
+import os
 
 SHUFFLE_LIST_ID = "_shuffle-list"
 
@@ -34,46 +34,18 @@ shuffleList.counter = 0
 
 
 def prepare(html, card, context):
-    unordered_list_re = re.compile(fr'(?<=<ul id="{SHUFFLE_LIST_ID}">)([\s\S]*?)(?=</ul>)')
-    list_item_re = re.compile(r'(?<=<li>)(.*?)(?=</li>)')
-
     styling = f"""<style>[id^='{SHUFFLE_LIST_ID}-'] {{list-style-type: circle;}}</style>"""
 
-    if not context == "reviewQuestion":
-        try:
-            for index, shuffled_list_item in prepare.shuffled_list_items:
-                unordered_list_re = re.compile(fr'(?<=<ul id="{SHUFFLE_LIST_ID}-{index}">)([\s\S]*?)(?=</ul>)')
-                unordered_list = unordered_list_re.findall(html)[0]
-                html = unordered_list_re.sub(shuffled_list_item, html)
+    if context == "reviewAnswer" and prepare.shuffled_list_content:
+        parser = ULParser(card, context, SHUFFLE_LIST_ID, shuffle_list_content=prepare.shuffled_list_content)
+        parser.feed(html)
+        return parser.result.getvalue() + styling
 
-            return html + styling
-        except:
-            return html
+    parser = ULParser(card, context, SHUFFLE_LIST_ID)
+    parser.feed(html)
+    prepare.shuffled_list_content = parser.shuffled_list_content
 
-    all_unordered_list_re = re.compile(fr'<ul id="{SHUFFLE_LIST_ID}-\d\d\d">')
-
-    all_unordered_list = "".join(all_unordered_list_re.findall(html))
-    print(all_unordered_list)
-    indices_re = re.compile(r'\d\d\d')
-    indices = indices_re.findall(all_unordered_list)
-
-    shuffled_list_items = []
-    for index in indices:
-        unordered_list_re = re.compile(fr'(?<=<ul id="{SHUFFLE_LIST_ID}-{index}">)([\s\S]*?)(?=</ul>)')
-        unordered_list = unordered_list_re.findall(html)[0]
-
-        list_item_values = list_item_re.findall(unordered_list)
-        random.shuffle(list_item_values)
-        shuffled_list_item = "".join([f"<li>{value}</li>" for value in list_item_values])
-        shuffled_list_items.append((index, shuffled_list_item))
-
-        html = unordered_list_re.sub(shuffled_list_item, html)
-
-    # Add the shuffled list items as persistent data to the prepare function. This way, the list items can be accessed
-    # in the next call of the prepare function, when the answer is shown (when the context is "reviewAnswer").
-    prepare.shuffled_list_items = shuffled_list_items
-
-    return html + styling
+    return parser.result.getvalue() + styling
 
 
 gui_hooks.card_will_show.append(prepare)
