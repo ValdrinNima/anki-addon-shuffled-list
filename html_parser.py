@@ -23,10 +23,8 @@ class ClozeHTMLParser(HTMLParser):
                     self.result.write(f'{attr}="{value}" ')
                 self.result.write('>')
             else:
-                # For other spans, write as is
                 self.write_starttag(tag, attrs)
         else:
-            # For other tags, write as is
             self.write_starttag(tag, attrs)
 
     def handle_endtag(self, tag):
@@ -35,7 +33,6 @@ class ClozeHTMLParser(HTMLParser):
             self.result.write('</span>')
             self.in_cloze_span = False
         else:
-            # For other tags, write as is
             self.result.write(f'</{tag}>')
 
     def handle_data(self, data):
@@ -46,7 +43,6 @@ class ClozeHTMLParser(HTMLParser):
             else:
                 self.result.write(data)
         else:
-            # For other data, write as is
             self.result.write(data)
 
     def write_starttag(self, tag, attrs):
@@ -69,6 +65,10 @@ class ULParser(HTMLParser):
         self.ul_buffer = StringIO()
         self.li_buffer = StringIO()
         self.result = StringIO()
+        # shuffled_list_content is a dictionary that stores the shuffled list content for each list
+        # Each list is identified by its index, which is the number after the dash in the list id
+        if shuffle_list_content is None:
+            shuffle_list_content = {}
         self.shuffled_list_content = shuffle_list_content
         self.shuffle_list_id = shuffle_list_id
 
@@ -103,13 +103,13 @@ class ULParser(HTMLParser):
 
             # If the context is "reviewAnswer" and the shuffled list content is already known, use it.
             # This way the list items won't be shuffled again when the answer is shown.
-            if self.shuffled_list_content:
-                self.ul_buffer.write(self.shuffled_list_content)
+            if self.shuffled_list_content.get(self.current_index, None) and self.context == "reviewAnswer":
+                self.ul_buffer.write(self.shuffled_list_content[self.current_index])
                 # Replace ul buffer content with revealed cloze data
                 ul_content = self.replace_cloze_placeholder()
-                # Reset the buffer
-                self.ul_buffer.seek(0)
-                self.ul_buffer.truncate(0)
+
+                self.clear_buffer(self.li_buffer)
+                self.clear_buffer(self.ul_buffer)
 
                 # Write the content with the revealed cloze data to the buffer
                 self.ul_buffer.write(ul_content)
@@ -124,11 +124,15 @@ class ULParser(HTMLParser):
 
             # Join the shuffled items back into a string with '</li>' as the separator
             shuffled_content = '</li>'.join(cleaned_items)
-            self.shuffled_list_content = shuffled_content
+            self.shuffled_list_content[self.current_index] = shuffled_content
             self.ul_buffer.write(shuffled_content)
             self.ul_buffer.write('</ul>')
+
             self.in_target_ul = False
             self.result.write(self.ul_buffer.getvalue())
+
+            self.clear_buffer(self.li_buffer)
+            self.clear_buffer(self.ul_buffer)
         elif tag == 'li' and self.in_target_ul:
             self.li_buffer.write(f'</{tag}>')
         elif tag in ['u', 'i', 'b', 'strong', 'span'] and self.in_target_ul:
@@ -146,3 +150,7 @@ class ULParser(HTMLParser):
             self.li_buffer.write(data)
         else:
             self.result.write(data)
+
+    def clear_buffer(self, buffer):
+        buffer.seek(0)
+        buffer.truncate(0)
